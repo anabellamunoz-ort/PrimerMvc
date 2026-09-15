@@ -22,7 +22,6 @@ public class ElementoService {
      //   Elemento elemento = new Elemento(1,nombre);
         //return repository.save(elemento);
         return repository.save(Elemento.builder()
-                     //   .id(1)
                         .nombre(nombre)
                 .build());
     }

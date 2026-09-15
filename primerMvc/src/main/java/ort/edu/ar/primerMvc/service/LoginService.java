@@ -2,7 +2,6 @@ package ort.edu.ar.primerMvc.service;
 
 import org.springframework.stereotype.Service;
 import ort.edu.ar.primerMvc.dto.LoginDTO;
-import ort.edu.ar.primerMvc.model.Elemento;
 import ort.edu.ar.primerMvc.model.Login;
 import ort.edu.ar.primerMvc.repository.LoginRepository;
 
@@ -14,24 +13,28 @@ public class LoginService {
         this.repository = repository;
     }
 
-    public Boolean chequearLogin(LoginDTO loginDto) {
+    public Login chequearLogin(LoginDTO loginDto) {
+
         Login login = repository.findByEmail(loginDto.getEmail())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado."+loginDto));
 
-        // Simulación de usuario válido
-        //  return email.equals("admin@mail.com") && clave.equals("1234");
-        return loginDto.getEmail().equals(login.getEmail()) && loginDto.getPassword().equals(login.getClave());
-
+        Boolean estaAutorizado = loginDto.getEmail().equals(login.getEmail())
+                && loginDto.getClave().equals(login.getClave());
+        if (estaAutorizado) {
+            return login;
+        } else {
+            return null;
+        }
     }
 
-    public String crearLogin(String nombre) {
+    public Login crearLogin(LoginDTO loginDto) {
         //   Elemento elemento = new Elemento(1,nombre);
         //return repository.save(elemento);
-        repository.save(Login.builder()
+        Login login = repository.save(Login.builder()
                 //   .id(1)
-                .email("mail@mail.com")
-                .clave("123")
+                .email(loginDto.getEmail())
+                .clave(loginDto.getClave())
                 .build());
-        return "";
+        return login;
     }
 }
