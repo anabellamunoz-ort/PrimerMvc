@@ -8,14 +8,30 @@ services:
     dockerContext: .
     healthCheckPath: /
     envVars:
-      - key: DATABASE_URL
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_HOST
         fromDatabase:
           name: primermvc-db
-          property: connectionString
-      - key: SPRING_JPA_DDL_AUTO
-        value: update
-      - key: SPRING_JPA_SHOW_SQL
-        value: "false"
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: primermvc-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: primermvc-db
+          property: database
+      - key: DB_URL
+        value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+      - key: DB_USERNAME
+        fromDatabase:
+          name: primermvc-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: primermvc-db
+          property: password
 
 databases:
   - name: primermvc-db

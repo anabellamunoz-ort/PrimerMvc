@@ -15,18 +15,30 @@ PrimerMvc/            <- raíz del repositorio git
     └── src/
 ```
 
-Por eso Render necesita saber que el proyecto está en `primerMvc/`. El `render.yaml`
-de la raíz ya lo resuelve con `rootDir: primerMvc`. Si configurás el servicio a mano,
-tenés que setear el **Root Directory** en `primerMvc`, o te dará el error
-`failed to read dockerfile`.
+Render necesita saber que el proyecto está en `primerMvc/`. El `render.yaml`
+de la raíz lo resuelve con `rootDir: primerMvc`. Si configurás el servicio a mano,
+seteá el **Root Directory** en `primerMvc`, o dará el error `failed to read dockerfile`.
 
-## Archivos relevantes
+## Perfiles de Spring
 
-- `render.yaml` (en la raíz): Blueprint que define el web service y la base PostgreSQL.
-- `primerMvc/Dockerfile`: build multi-etapa (compila con Maven y corre con un JRE liviano).
-- `primerMvc/src/main/java/.../config/DatabaseConfig.java`: convierte la `DATABASE_URL`
-  de Render (formato libpq) al formato JDBC que necesita el driver.
-- `application.yaml`: config de BD y puerto con defaults para desarrollo local.
+- **Local (default)**: usa `application.yaml` con MySQL (`jdbc:mysql://localhost:3306/first`).
+- **Producción (`prod`)**: usa `application-prod.yaml` con PostgreSQL. Se activa con
+  la variable `SPRING_PROFILES_ACTIVE=prod` y lee la conexión de `DB_URL`,
+  `DB_USERNAME` y `DB_PASSWORD`.
+
+## Variables de entorno (producción)
+
+| Variable | Descripción | Ejemplo |
+|---|---|---|
+| `SPRING_PROFILES_ACTIVE` | Activa el perfil de producción | `prod` |
+| `DB_URL` | URL JDBC de PostgreSQL | `jdbc:postgresql://host:5432/base` |
+| `DB_USERNAME` | Usuario de la base | `primermvc` |
+| `DB_PASSWORD` | Contraseña de la base | (secreto) |
+| `PORT` | Puerto del servidor (lo inyecta Render) | `10000` |
+
+> `DB_URL` debe estar en formato JDBC (`jdbc:postgresql://...`). La URL que da
+> Render por defecto empieza con `postgresql://`; hay que anteponerle `jdbc:` y
+> usar host, puerto y nombre de base. El `render.yaml` ya la construye así.
 
 ## Opción A: Deploy con Blueprint (recomendado)
 
@@ -34,28 +46,22 @@ tenés que setear el **Root Directory** en `primerMvc`, o te dará el error
 2. En Render, elegí **New > Blueprint** y conectá el repo.
 3. Render detecta `render.yaml` en la raíz y crea automáticamente:
    - El web service `primermvc` (Docker, con rootDir en `primerMvc`).
-   - La base de datos PostgreSQL `primermvc-db`.
-4. La variable `DATABASE_URL` se inyecta sola desde la base; la app la convierte a JDBC.
+   - La base PostgreSQL `primermvc-db`.
+4. Las variables (`SPRING_PROFILES_ACTIVE`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`)
+   se inyectan solas desde la base.
 
 ## Opción B: Deploy manual
 
-1. **New > PostgreSQL**: creá una base de datos (plan Free). Copiá su **Internal Database URL**.
-2. **New > Web Service**: conectá el repo y elegí runtime **Docker**.
+1. **New > PostgreSQL**: creá una base (plan Free). Anotá host, puerto, nombre,
+   usuario y contraseña.
+2. **New > Web Service**: conectá el repo, runtime **Docker**.
 3. Seteá el **Root Directory** en `primerMvc`.
-4. Agregá estas variables de entorno en el web service:
-
-   | Variable | Valor |
-   |---|---|
-   | `DATABASE_URL` | la Internal Database URL de la base (empieza con `postgresql://`) |
-   | `SPRING_JPA_DDL_AUTO` | `update` |
-   | `SPRING_JPA_SHOW_SQL` | `false` |
-
-   Render inyecta `PORT` automáticamente; la app ya lo usa.
+4. Agregá las variables de entorno de la tabla de arriba. Para `DB_URL` armá la URL
+   JDBC a mano: `jdbc:postgresql://<host>:<port>/<nombre_base>`.
 
 ## Desarrollo local
 
-Sin variables de entorno, la app usa MySQL local (`jdbc:mysql://localhost:3306/first`,
-usuario/clave `root`). Para correrla:
+Sin perfil activo, la app usa MySQL local. Para correrla:
 
 ```bash
 cd primerMvc
@@ -64,7 +70,5 @@ cd primerMvc
 
 ## Notas
 
-- `DatabaseConfig` solo convierte la URL cuando detecta una `DATABASE_URL` que empieza
-  con `postgres://` o `postgresql://`. En local, sin esa variable, usa la config de
-  `application.yaml` (MySQL).
 - El modelo usa JPA con `ddl-auto: update`, así que las tablas se crean solas.
+- No hardcodees credenciales en los archivos del repo: usá siempre variables de entorno.
